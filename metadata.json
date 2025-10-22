@@ -1,0 +1,5 @@
+{
+  "name": "Learnforge",
+  "description": "A web application for personalized learning missions. Users can enroll in existing courses, browse available missions, and create their own tailored learning paths.",
+  "requestFramePermissions": []
+}
