@@ -6,7 +6,7 @@ Welcome to Learnforge! This is a web application for creating and undertaking pe
 
 - **Frontend:** React, TypeScript
 - **Styling:** Tailwind CSS
-- **Containerization:** Docker & Nginx
+ **Containerization:** Docker (served by a small Node static server)
 - **AI Integration (Planned):** Google Gemini API
 
 ## Getting Started
@@ -32,9 +32,9 @@ Follow these steps to get the application running on your local machine.
     ```
 
 3.  **Run the Docker container:**
-    Once the image is built, run the following command to start a container from it. This command maps port `3000` on your host machine to port `80` inside the container.
+    Once the image is built, run the following command to start a container from it. This command maps port `3000` on your host machine to port `3000` inside the container.
     ```bash
-    docker run -p 3000:80 learnforge
+    docker run -p 3000:3000 learnforge
     ```
 
 4.  **Access the application:**
