@@ -10,6 +10,11 @@ interface MissionCardProps {
 const MissionCard: React.FC<MissionCardProps> = ({ mission }) => {
   const isOngoing = mission.progress !== undefined;
 
+  const handleStartMission = () => {
+    // TODO: Implement actual mission start logic
+    console.log('Starting mission:', mission.title);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 flex flex-col h-full">
       <div className="p-6 flex-grow">
@@ -49,7 +54,10 @@ const MissionCard: React.FC<MissionCardProps> = ({ mission }) => {
 
       {!isOngoing && (
          <div className="p-6 mt-auto bg-gray-50">
-            <button className="w-full text-center font-semibold text-sky-blue hover:text-deep-navy transition-colors">
+            <button 
+              onClick={handleStartMission}
+              className="w-full text-center font-semibold text-sky-blue hover:text-deep-navy transition-colors"
+            >
               Start Mission
             </button>
          </div>
