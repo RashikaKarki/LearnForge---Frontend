@@ -3,6 +3,8 @@ import { GoogleIcon } from '../components/icons/GoogleIcon';
 import { LogoIcon } from '../components/icons/LogoIcon';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, provider } from '../firebase';
+import { useApiClient } from '../utils/api';
+import { useFlashError } from '../contexts/FlashErrorContext';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -11,36 +13,94 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const apiClient = useApiClient();
+  const { showError, showSuccess, showWarning } = useFlashError();
 
   const handleLogin = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Sign in with Google using Firebase
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      
-      // Get the ID token for backend communication
-      const token = await user.getIdToken();
-      
+
+      // Get the ID token for session creation
+      const idToken = await user.getIdToken();
+
       console.log('User signed in:', user);
-      console.log('ID Token:', token);
-      
-      // Call the onLogin callback to update parent state
-      // The user profile will be fetched automatically by AuthContext
-      onLogin();
+      console.log('ID Token obtained, creating session...');
+
+      // Create session cookie from ID token
+      if (apiClient) {
+        try {
+          const sessionResponse = await apiClient.createSession(idToken);
+          
+          if (sessionResponse.data) {
+            console.log('✅ Session created successfully:', sessionResponse.data);
+            showSuccess('Successfully signed in!');
+            
+            // Add a small delay to ensure cookie is set before proceeding
+            console.log('⏳ Waiting for session cookie to be set...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Call the onLogin callback to update parent state
+            // The user profile will be fetched automatically by AuthContext
+            onLogin();
+          } else {
+            console.error('❌ Failed to create session:', sessionResponse.error);
+            
+            // Determine error type based on response
+            if (sessionResponse.error?.includes('Recent sign-in required')) {
+              showError('Your session has expired. Please sign in again.', 'warning');
+            } else if (sessionResponse.error?.includes('Invalid ID token')) {
+              showError('Authentication failed. Please try signing in again.', 'error');
+            } else if (sessionResponse.error?.includes('500') || sessionResponse.error?.includes('Internal Server Error')) {
+              showError('Server error occurred. Please try again in a moment.', 'error');
+            } else {
+              showError('Failed to create session. Please try again.', 'error');
+            }
+            
+            setError('Failed to create session. Please try again.');
+          }
+        } catch (sessionError: any) {
+          console.error('Session creation error:', sessionError);
+          
+          // Handle different types of session creation errors
+          if (sessionError.message?.includes('Recent sign-in required')) {
+            showError('Your session has expired. Please sign in again.', 'warning');
+          } else if (sessionError.message?.includes('Invalid ID token')) {
+            showError('Authentication failed. Please try signing in again.', 'error');
+          } else if (sessionError.message?.includes('500') || sessionError.message?.includes('Internal Server Error')) {
+            showError('Server error occurred. Please try again in a moment.', 'error');
+          } else if (sessionError.message?.includes('Network')) {
+            showError('Network error. Please check your connection and try again.', 'error');
+          } else {
+            showError('Failed to create session. Please try again.', 'error');
+          }
+          
+          setError('Failed to create session. Please try again.');
+        }
+      } else {
+        console.error('API client not available');
+        showError('System error. Please refresh the page and try again.', 'error');
+        setError('API client not available. Please try again.');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
-      
+
       // Handle specific Firebase auth errors
       if (err.code === 'auth/popup-closed-by-user') {
+        showWarning('Sign-in was cancelled. Please try again.');
         setError('Sign-in was cancelled. Please try again.');
       } else if (err.code === 'auth/popup-blocked') {
+        showError('Popup was blocked by your browser. Please allow popups and try again.', 'warning');
         setError('Popup was blocked by your browser. Please allow popups and try again.');
       } else if (err.code === 'auth/network-request-failed') {
+        showError('Network error. Please check your connection and try again.', 'error');
         setError('Network error. Please check your connection and try again.');
       } else {
+        showError('Sign-in failed. Please try again.', 'error');
         setError('Log in failed.');
       }
     } finally {

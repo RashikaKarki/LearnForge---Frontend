@@ -1,7 +1,6 @@
-import { useAuth } from '../contexts/AuthContext';
 import { UserProfile } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
-// Base API URL - you can move this to config.ts if needed
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // Security check: Ensure HTTPS in production
@@ -17,51 +16,25 @@ export interface ApiResponse<T = any> {
 
 export class ApiClient {
   private baseUrl: string;
-  private getToken: () => Promise<string | null>;
-  private onTokenExpired?: (() => void) | undefined;
+  private onSessionExpired?: (() => void) | undefined;
 
-  constructor(baseUrl: string, getToken: () => Promise<string | null>, onTokenExpired?: (() => void) | undefined) {
+  constructor(baseUrl: string, onSessionExpired?: (() => void) | undefined) {
     this.baseUrl = baseUrl;
-    this.getToken = getToken;
-    this.onTokenExpired = onTokenExpired;
+    this.onSessionExpired = onSessionExpired;
   }
 
-  // Validate token format for basic security
-  private isValidTokenFormat(token: string): boolean {
-    // Firebase ID tokens are JWT format: header.payload.signature
-    // Basic validation: should have 3 parts separated by dots
-    const parts = token.split('.');
-    return parts.length === 3 && parts.every(part => part.length > 0);
-  }
+  // Session cookie validation is handled by the server
+  // No client-side validation needed for httpOnly cookies
 
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    // Get fresh token for each request
-    console.log('🔑 API Client: Requesting token...');
-    const token = await this.getToken();
+    console.log('🍪 API Client: Making request with session cookie...');
     
-    console.log('🔑 API Client: Token received:', { 
-      hasToken: !!token, 
-      tokenLength: token?.length,
-      tokenPreview: token ? `${token.substring(0, 20)}...` : 'null'
-    });
-    
-    if (!token) {
-      console.error('❌ API Client: No authentication token available');
-      throw new Error('No authentication token available');
-    }
-
-    // Validate token format (basic security check)
-    if (!this.isValidTokenFormat(token)) {
-      throw new Error('Invalid token format');
-    }
-
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
       'X-Requested-With': 'XMLHttpRequest', // CSRF protection
       ...options.headers,
     };
@@ -70,13 +43,14 @@ export class ApiClient {
       // Log request for debugging (without sensitive data)
       if (import.meta.env.DEV) {
         console.log(`API Request: ${options.method || 'GET'} ${url}`);
-        console.log(`Token present: ${token ? 'Yes' : 'No'}`);
+        console.log(`Using session cookies: Yes`);
+        console.log(`Credentials: include`);
       }
       
       const response = await fetch(url, {
         ...options,
         headers,
-        credentials: 'same-origin', // Include cookies for CSRF protection
+        credentials: 'include', // Include session cookies
       });
 
       // Log response status
@@ -88,10 +62,10 @@ export class ApiClient {
         let errorMessage: string;
         
         if (response.status === 401) {
-          errorMessage = 'Authentication failed. Please sign in again.';
-          // Token expired or invalid - trigger logout
-          if (this.onTokenExpired) {
-            this.onTokenExpired();
+          errorMessage = 'Session expired. Please sign in again.';
+          // Session expired or invalid - trigger logout
+          if (this.onSessionExpired) {
+            this.onSessionExpired();
           }
         } else if (response.status === 403) {
           errorMessage = 'Access forbidden. Insufficient permissions.';
@@ -122,21 +96,23 @@ export class ApiClient {
             errorMessage += ` - ${errorData.message || errorData.error}`;
           }
           
-          // Check for token expiration in error response
-          if (errorData.code === 'auth/id-token-expired' || 
+          // Check for session expiration in error response
+          if (errorData.detail === 'No session cookie found' ||
+              errorData.detail === 'Session has expired' ||
+              errorData.detail === 'Session has been revoked' ||
+              errorData.detail === 'Invalid session cookie' ||
+              errorData.detail === 'Invalid or expired session' ||
+              errorData.message?.includes('session') ||
               errorData.message?.includes('expired') ||
-              errorData.message?.includes('invalid token') ||
-              errorData.error_code === 'TOKEN_EXPIRED' ||
-              errorData.detail === 'Token expired') {
+              errorData.message?.includes('invalid')) {
             
-            console.log('🚨 Token expired detected:', {
-              errorCode: errorData.error_code,
+            console.log('🚨 Session expired detected:', {
               detail: errorData.detail,
               message: errorData.message
             });
             
-            if (this.onTokenExpired) {
-              this.onTokenExpired();
+            if (this.onSessionExpired) {
+              this.onSessionExpired();
             }
           }
         } catch (jsonError) {
@@ -176,20 +152,23 @@ export class ApiClient {
         timestamp: new Date().toISOString()
       });
       
-      // Check if error is related to token expiration
+      // Check if error is related to session expiration
       if (error instanceof Error && 
-          (error.message.includes('Authentication failed') ||
+          (error.message.includes('Session expired') ||
+           error.message.includes('No session cookie found') ||
+           error.message.includes('Session has been revoked') ||
+           error.message.includes('Invalid session cookie') ||
+           error.message.includes('Invalid or expired session') ||
            error.message.includes('expired') ||
-           error.message.includes('invalid token') ||
-           error.message.includes('TOKEN_EXPIRED') ||
-           error.message.includes('Token expired'))) {
+           error.message.includes('session') ||
+           error.message.includes('Authentication failed'))) {
         
-        console.log('🚨 Token expired detected in catch block:', {
+        console.log('🚨 Session expired detected in catch block:', {
           errorMessage: error.message
         });
         
-        if (this.onTokenExpired) {
-          this.onTokenExpired();
+        if (this.onSessionExpired) {
+          this.onSessionExpired();
         }
       }
       
@@ -221,6 +200,33 @@ export class ApiClient {
     return this.makeRequest<T>(endpoint, { method: 'DELETE' });
   }
 
+  // Create session from ID token
+  async createSession(idToken: string): Promise<ApiResponse<{ message: string; uid: string }>> {
+    return this.makeRequest<{ message: string; uid: string }>('/auth/create-session', {
+      method: 'POST',
+      body: JSON.stringify({ id_token: idToken }),
+    });
+  }
+
+  // Check session status
+  async checkSessionStatus(): Promise<ApiResponse<{ message: string; uid: string }>> {
+    return this.makeRequest<{ message: string; uid: string }>('/auth/session-status');
+  }
+
+  // Refresh session
+  async refreshSession(): Promise<ApiResponse<{ message: string; uid: string }>> {
+    return this.makeRequest<{ message: string; uid: string }>('/auth/refresh-session', {
+      method: 'POST',
+    });
+  }
+
+  // Logout and clear session
+  async logout(): Promise<ApiResponse<{ message: string; uid: null }>> {
+    return this.makeRequest<{ message: string; uid: null }>('/auth/logout', {
+      method: 'POST',
+    });
+  }
+
   async getUserProfile(): Promise<ApiResponse<UserProfile>> {
     return this.get<UserProfile>('/user/profile');
   }
@@ -228,30 +234,14 @@ export class ApiClient {
 
 // Hook to get an authenticated API client
 export const useApiClient = () => {
-  const { token, refreshToken, signOut } = useAuth();
+  const { signOut } = useAuth();
   
-  // Create async function that gets fresh token
-  const getFreshToken = async (): Promise<string | null> => {
-    if (!token) {
-      return null;
-    }
-    
-    // Try to refresh token to ensure it's fresh
-    try {
-      const freshToken = await refreshToken();
-      return freshToken;
-    } catch (error) {
-      console.error('Failed to refresh token:', error);
-      return token; // Fallback to current token
-    }
-  };
-  
-  // Handle token expiration by signing out
-  const handleTokenExpired = async () => {
-    console.log('Token expired, signing out...');
+  // Handle session expiration by signing out
+  const handleSessionExpired = async () => {
+    console.log('Session expired, signing out...');
     await signOut();
   };
   
-  return new ApiClient(API_BASE_URL, getFreshToken, handleTokenExpired);
+  return new ApiClient(API_BASE_URL, handleSessionExpired);
 };
 

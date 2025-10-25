@@ -4,9 +4,10 @@ import Error500Page from './pages/Error500Page';
 import Error400Page from './pages/Error400Page';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FlashErrorProvider } from './contexts/FlashErrorContext';
 
 function AppContent() {
-  const { user, loading, error, tokenExpired, signOut } = useAuth();
+  const { user, loading, error, sessionExpired, signOut } = useAuth();
 
   const handleLogin = () => {
     // This will be called after successful Firebase authentication
@@ -17,8 +18,8 @@ function AppContent() {
     await signOut();
   };
 
-  // Handle token expiration
-  if (tokenExpired) {
+  // Handle session expiration
+  if (sessionExpired) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-deep-navy">
         <div className="max-w-md w-full text-center">
@@ -77,9 +78,11 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <FlashErrorProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </FlashErrorProvider>
     </ErrorBoundary>
   );
 }
