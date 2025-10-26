@@ -91,6 +91,7 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
         setIsConnected(true);
         setIsInitialized(true);
         setIsLoading(false);
+        console.log('WebSocket connection opened successfully');
       };
 
       ws.onmessage = (event) => {
@@ -161,13 +162,15 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
         }
       };
 
-      ws.onerror = () => {
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
         setError('Connection error occurred');
         setIsConnected(false);
         setIsLoading(false);
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         setIsLoading(false);
         // Clean up token cookie
@@ -175,6 +178,7 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
       };
 
     } catch (error) {
+      console.error('Failed to initialize connection:', error);
       const errorMessage = error instanceof Error ? error.message : 'Connection failed';
       showError(`Failed to connect to Polaris: ${errorMessage}`);
       onClose();
@@ -183,15 +187,19 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
     } finally {
       isInitializingRef.current = false;
     }
-  }, [user, apiClient, handleMissionCreated, isInitialized, showError, onClose]);
+  }, [user, apiClient, handleMissionCreated, showError, onClose]);
 
   // Initialize WebSocket connection - only once when component mounts
   useEffect(() => {
-    if (!isInitialized) {
-      initializeConnection();
+    // Double-check that we're not already initializing or initialized
+    if (isInitializingRef.current || isInitialized) {
+      return;
     }
 
+    initializeConnection();
+
     return () => {
+      // Only clean up on actual unmount, not on state changes
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -199,6 +207,7 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
       // Clean up token cookie on unmount
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sendMessage = useCallback(() => {
