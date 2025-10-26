@@ -168,12 +168,13 @@ export class ApiClient {
   }
 
   // Create a new session for WebSocket connection
-  async createWebSocketSession(firebaseToken: string): Promise<ApiResponse<SessionResponse>> {
-    return this.makeRequest<SessionResponse>('/sessions', {
+  // This endpoint uses the session cookie from login, not Bearer token
+  async createWebSocketSession(_firebaseToken: string): Promise<ApiResponse<SessionResponse>> {
+    // The session cookie from login is sent automatically with credentials: 'include'
+    // Add trailing slash to avoid 307 redirect
+    return this.makeRequest<SessionResponse>('/sessions/', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firebaseToken}`
-      }
+      headers: {}
     });
   }
 

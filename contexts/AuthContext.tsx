@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { UserProfile } from '../types';
 import { ApiClient } from '../utils/api';
 import { useFlashError } from './FlashErrorContext';
+import { API_BASE_URL } from '../config';
 
 interface AuthContextType {
   user: User | null;
@@ -177,7 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   
     const client = new ApiClient(
-      import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
+      API_BASE_URL,
       handleSessionExpired
     );
     setApiClient(client);

@@ -35,7 +35,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           if (sessionResponse.data) {
             showSuccess('Successfully signed in!');
             
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Give the browser time to store the session cookie
+            await new Promise(resolve => setTimeout(resolve, 4000));
             
             onLogin();
           } else {

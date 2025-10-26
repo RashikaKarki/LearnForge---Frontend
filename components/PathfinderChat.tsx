@@ -78,10 +78,11 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
 
       const { session_id } = sessionResponse.data;
       
-      // Set token cookie for WebSocket authentication
-      document.cookie = `token=${firebaseToken}; path=/; secure; samesite=strict`;
+      // Set token cookie for WebSocket authentication  
+      document.cookie = `token=${firebaseToken}; path=/; secure; samesite=none`;
       
-      const wsUrl = getPolarisWebSocketUrl(session_id);
+      // Pass token in URL as well for WebSocket authentication
+      const wsUrl = getPolarisWebSocketUrl(session_id, firebaseToken);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 

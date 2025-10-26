@@ -4,12 +4,14 @@ export const WEBSOCKET_HOST = import.meta.env.VITE_WEBSOCKET_HOST || 'localhost:
 export const WEBSOCKET_PROTOCOL = import.meta.env.VITE_WEBSOCKET_PROTOCOL || 'ws';
 export const WEBSOCKET_API_VERSION = import.meta.env.VITE_WEBSOCKET_API_VERSION || '/api/v1';
 
-// Construct the full WebSocket URL for Polaris (using cookies for token)
-export const getPolarisWebSocketUrl = (sessionId: string): string => {
+export const getPolarisWebSocketUrl = (sessionId: string, token?: string): string => {
   const baseUrl = `${WEBSOCKET_PROTOCOL}://${WEBSOCKET_HOST}${WEBSOCKET_API_VERSION}/mission-commander/ws`;
   const params = new URLSearchParams({
     session_id: sessionId
   });
+  if (token) {
+    params.append('token', token);
+  }
   return `${baseUrl}?${params.toString()}`;
 };
 
