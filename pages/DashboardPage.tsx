@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { ONGOING_MISSIONS, AVAILABLE_MISSIONS } from '../constants';
 import { Mission } from '../types';
 import Header from '../components/Header';
 import MissionCard from '../components/MissionCard';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { useAuth } from '../contexts/AuthContext';
+import { PolarisChat } from '../components/PathfinderChat';
+import { MissionDetails } from '../components/MissionDetails';
 
 interface DashboardPageProps {
   onLogout: () => void;
@@ -12,6 +14,35 @@ interface DashboardPageProps {
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
   const { userProfile, loading } = useAuth();
+  const [showChat, setShowChat] = useState(false);
+  const [showMissionDetails, setShowMissionDetails] = useState(false);
+  const [createdMission, setCreatedMission] = useState<Mission | null>(null);
+
+  const handleCreateMission = useCallback(() => {
+    setShowChat(true);
+  }, []);
+
+  const handleMissionCreated = useCallback((mission: Mission) => {
+    setCreatedMission(mission);
+    setShowChat(false);
+    setShowMissionDetails(true);
+  }, []);
+
+  const handleStartMission = useCallback(() => {
+    if (createdMission) {
+      setShowMissionDetails(false);
+      setCreatedMission(null);
+    }
+  }, [createdMission]);
+
+  const handleCloseChat = useCallback(() => {
+    setShowChat(false);
+  }, []);
+
+  const handleCloseMissionDetails = useCallback(() => {
+    setShowMissionDetails(false);
+    setCreatedMission(null);
+  }, []);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -34,7 +65,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
                 )}
               </p>
             </div>
-            <button className="mt-4 md:mt-0 flex items-center justify-center px-6 py-3 bg-coral text-white font-semibold rounded-lg shadow-md hover:bg-coral/90 transition-colors duration-300 transform hover:scale-105">
+            <button 
+              onClick={handleCreateMission}
+              className="mt-4 md:mt-0 flex items-center justify-center px-6 py-3 bg-coral text-white font-semibold rounded-lg shadow-md hover:bg-coral/90 transition-colors duration-300 transform hover:scale-105"
+            >
                 <PlusIcon className="h-5 w-5 mr-2"/>
                 Create Personalized Mission
             </button>
@@ -60,6 +94,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
           </div>
         </section>
       </main>
+
+      {/* Polaris Chat Modal */}
+      {showChat && (
+        <PolarisChat
+          onMissionCreated={handleMissionCreated}
+          onClose={handleCloseChat}
+        />
+      )}
+
+      {/* Mission Details Modal */}
+      {showMissionDetails && createdMission && (
+        <MissionDetails
+          mission={createdMission}
+          onStartMission={handleStartMission}
+          onClose={handleCloseMissionDetails}
+        />
+      )}
     </div>
   );
 };

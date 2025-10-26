@@ -1,10 +1,33 @@
 
 export interface Mission {
-  id: number;
+  id: string;
   title: string;
+  short_description: string;
   description: string;
+  level: string;
+  topics_to_cover: string[];
+  learning_goal: string;
+  byte_size_checkpoints: string[];
+  skills: string[];
+  creator_id: string;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
   progress?: number; // Optional progress for ongoing missions
-  tags: string[];
+  tags?: string[]; // Keep for backward compatibility
+}
+
+export interface SessionResponse {
+  session_id: string;
+  user_id: string;
+  status: string;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  from: 'user' | 'agent' | 'system';
+  text: string;
+  timestamp?: Date;
 }
 
 export interface UserProfile {

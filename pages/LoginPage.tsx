@@ -28,29 +28,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       // Get the ID token for session creation
       const idToken = await user.getIdToken();
 
-      console.log('User signed in:', user);
-      console.log('ID Token obtained, creating session...');
-
-      // Create session cookie from ID token
       if (apiClient) {
         try {
           const sessionResponse = await apiClient.createSession(idToken);
           
           if (sessionResponse.data) {
-            console.log('✅ Session created successfully:', sessionResponse.data);
             showSuccess('Successfully signed in!');
             
-            // Add a small delay to ensure cookie is set before proceeding
-            console.log('⏳ Waiting for session cookie to be set...');
             await new Promise(resolve => setTimeout(resolve, 500));
             
-            // Call the onLogin callback to update parent state
-            // The user profile will be fetched automatically by AuthContext
             onLogin();
           } else {
-            console.error('❌ Failed to create session:', sessionResponse.error);
-            
-            // Determine error type based on response
             if (sessionResponse.error?.includes('Recent sign-in required')) {
               showError('Your session has expired. Please sign in again.', 'warning');
             } else if (sessionResponse.error?.includes('Invalid ID token')) {
@@ -64,9 +52,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             setError('Failed to create session. Please try again.');
           }
         } catch (sessionError: any) {
-          console.error('Session creation error:', sessionError);
-          
-          // Handle different types of session creation errors
           if (sessionError.message?.includes('Recent sign-in required')) {
             showError('Your session has expired. Please sign in again.', 'warning');
           } else if (sessionError.message?.includes('Invalid ID token')) {
@@ -82,14 +67,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           setError('Failed to create session. Please try again.');
         }
       } else {
-        console.error('API client not available');
         showError('System error. Please refresh the page and try again.', 'error');
         setError('API client not available. Please try again.');
       }
     } catch (err: any) {
-      console.error('Login error:', err);
-
-      // Handle specific Firebase auth errors
       if (err.code === 'auth/popup-closed-by-user') {
         showWarning('Sign-in was cancelled. Please try again.');
         setError('Sign-in was cancelled. Please try again.');

@@ -12,7 +12,6 @@ const MissionCard: React.FC<MissionCardProps> = ({ mission }) => {
 
   const handleStartMission = () => {
     // TODO: Implement actual mission start logic
-    console.log('Starting mission:', mission.title);
   };
 
   return (
@@ -25,12 +24,12 @@ const MissionCard: React.FC<MissionCardProps> = ({ mission }) => {
               <BookOpenIcon className="h-6 w-6 text-gray-500" />
             }
           </div>
-          <h3 className="text-lg font-semibold text-deep-navy">{mission.title}</h3>
+          <h3 className="text-xl font-semibold text-deep-navy">{mission.title}</h3>
         </div>
-        <p className="text-gray-600 text-sm mb-4 h-16">{mission.description}</p>
+        <p className="text-gray-600 text-base font-regular mb-4 h-16">{mission.description}</p>
         <div className="flex flex-wrap gap-2">
-          {mission.tags.map(tag => (
-            <span key={tag} className="px-2 py-1 text-xs font-medium bg-soft-gray text-gray-700 rounded-full">
+          {mission.tags?.map(tag => (
+            <span key={tag} className="px-3 py-1 text-sm font-semibold bg-soft-gray text-deep-navy rounded-full">
               {tag}
             </span>
           ))}
@@ -39,9 +38,9 @@ const MissionCard: React.FC<MissionCardProps> = ({ mission }) => {
 
       {isOngoing && (
         <div className="px-6 pb-6">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-sm font-medium text-gray-500">Progress</span>
-            <span className="text-sm font-semibold text-sky-blue">{mission.progress}%</span>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-base font-semibold text-gray-500">Progress</span>
+            <span className="text-base font-bold text-sky-blue">{mission.progress}%</span>
           </div>
           <div className="w-full bg-soft-gray rounded-full h-2.5">
             <div 
@@ -53,10 +52,10 @@ const MissionCard: React.FC<MissionCardProps> = ({ mission }) => {
       )}
 
       {!isOngoing && (
-         <div className="p-6 mt-auto bg-gray-50">
+         <div className="p-6 mt-auto bg-soft-gray">
             <button 
               onClick={handleStartMission}
-              className="w-full text-center font-semibold text-sky-blue hover:text-deep-navy transition-colors"
+              className="w-full text-center font-semibold text-sky-blue hover:text-deep-navy transition-colors text-base"
             >
               Start Mission
             </button>

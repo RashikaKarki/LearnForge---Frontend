@@ -13,13 +13,10 @@ const Error400Page: React.FC<Error400PageProps> = ({
   const { clearError, fetchUserProfile } = useAuth();
   
   const handleRetry = async () => {
-    console.log('🔄 Retrying from 400 error page...');
-    clearError(); // Clear the error state first
+    clearError();
     try {
-      await fetchUserProfile(); // Try to fetch user profile again
+      await fetchUserProfile();
     } catch (error) {
-      console.error('❌ Retry failed:', error);
-      // If retry fails, reload the page
       window.location.reload();
     }
   };

@@ -1,7 +1,7 @@
-import { UserProfile } from '../types';
+import { UserProfile, SessionResponse, Mission } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+import { sanitizeInput } from './validation';
+import { API_BASE_URL } from '../config';
 
 // Security check: Ensure HTTPS in production
 if (import.meta.env.PROD && API_BASE_URL.startsWith('http://')) {
@@ -30,40 +30,25 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    console.log('🍪 API Client: Making request with session cookie...');
-    
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest', // CSRF protection
+      'X-Requested-With': 'XMLHttpRequest',
       ...options.headers,
     };
 
     try {
-      // Log request for debugging (without sensitive data)
-      if (import.meta.env.DEV) {
-        console.log(`API Request: ${options.method || 'GET'} ${url}`);
-        console.log(`Using session cookies: Yes`);
-        console.log(`Credentials: include`);
-      }
-      
       const response = await fetch(url, {
         ...options,
         headers,
-        credentials: 'include', // Include session cookies
+        credentials: 'include',
       });
-
-      // Log response status
-      if (import.meta.env.DEV) {
-        console.log(`API Response: ${response.status} ${response.statusText}`);
-      }
 
       if (!response.ok) {
         let errorMessage: string;
         
         if (response.status === 401) {
           errorMessage = 'Session expired. Please sign in again.';
-          // Session expired or invalid - trigger logout
           if (this.onSessionExpired) {
             this.onSessionExpired();
           }
@@ -77,26 +62,14 @@ export class ApiClient {
           errorMessage = `HTTP error! status: ${response.status}`;
         }
         
-        // Try to get error details from response body
         try {
           const errorData = await response.json();
           
-          // Log detailed error response
-          if (import.meta.env.DEV) {
-            console.log('❌ API Error Response:', {
-              url,
-              method: options.method || 'GET',
-              status: response.status,
-              statusText: response.statusText,
-              errorData: errorData
-            });
-          }
-          
           if (errorData.message || errorData.error) {
-            errorMessage += ` - ${errorData.message || errorData.error}`;
+            const sanitizedError = sanitizeInput(errorData.message || errorData.error);
+            errorMessage += ` - ${sanitizedError}`;
           }
           
-          // Check for session expiration in error response
           if (errorData.detail === 'No session cookie found' ||
               errorData.detail === 'Session has expired' ||
               errorData.detail === 'Session has been revoked' ||
@@ -106,53 +79,20 @@ export class ApiClient {
               errorData.message?.includes('expired') ||
               errorData.message?.includes('invalid')) {
             
-            console.log('🚨 Session expired detected:', {
-              detail: errorData.detail,
-              message: errorData.message
-            });
-            
             if (this.onSessionExpired) {
               this.onSessionExpired();
             }
           }
         } catch (jsonError) {
-          // Log JSON parsing error
-          if (import.meta.env.DEV) {
-            console.log('❌ API Error - Could not parse JSON:', {
-              url,
-              method: options.method || 'GET',
-              status: response.status,
-              statusText: response.statusText,
-              jsonError: jsonError
-            });
-          }
+          // JSON parsing failed, continue with basic error message
         }
         
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      
-      // Log successful API response
-      if (import.meta.env.DEV) {
-        console.log('✅ API Success Response:', {
-          url,
-          method: options.method || 'GET',
-          status: response.status,
-          data: data
-        });
-      }
-      
       return { data };
     } catch (error) {
-      console.error('API request failed:', {
-        url,
-        method: options.method || 'GET',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
-      });
-      
-      // Check if error is related to session expiration
       if (error instanceof Error && 
           (error.message.includes('Session expired') ||
            error.message.includes('No session cookie found') ||
@@ -162,10 +102,6 @@ export class ApiClient {
            error.message.includes('expired') ||
            error.message.includes('session') ||
            error.message.includes('Authentication failed'))) {
-        
-        console.log('🚨 Session expired detected in catch block:', {
-          errorMessage: error.message
-        });
         
         if (this.onSessionExpired) {
           this.onSessionExpired();
@@ -230,15 +166,28 @@ export class ApiClient {
   async getUserProfile(): Promise<ApiResponse<UserProfile>> {
     return this.get<UserProfile>('/user/profile');
   }
+
+  // Create a new session for WebSocket connection
+  async createWebSocketSession(firebaseToken: string): Promise<ApiResponse<SessionResponse>> {
+    return this.makeRequest<SessionResponse>('/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${firebaseToken}`
+      }
+    });
+  }
+
+  // Get mission by ID
+  async getMission(missionId: string): Promise<ApiResponse<Mission>> {
+    return this.get<Mission>(`/missions/${missionId}`);
+  }
 }
 
 // Hook to get an authenticated API client
 export const useApiClient = () => {
   const { signOut } = useAuth();
   
-  // Handle session expiration by signing out
   const handleSessionExpired = async () => {
-    console.log('Session expired, signing out...');
     await signOut();
   };
   
