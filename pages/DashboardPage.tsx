@@ -6,6 +6,7 @@ import { PlusIcon } from '../components/icons/PlusIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { PolarisChat } from '../components/PathfinderChat';
 import { MissionDetails } from '../components/MissionDetails';
+import { MissionViewPage } from './MissionViewPage';
 import { useApiClient } from '../utils/api';
 
 interface DashboardPageProps {
@@ -17,6 +18,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
   const apiClient = useApiClient();
   const [showChat, setShowChat] = useState(false);
   const [showMissionDetails, setShowMissionDetails] = useState(false);
+  const [showMissionView, setShowMissionView] = useState(false);
   const [createdMission, setCreatedMission] = useState<Mission | null>(null);
   const [enrolledMissions, setEnrolledMissions] = useState<Mission[]>([]);
   const [missionsLoading, setMissionsLoading] = useState(true);
@@ -36,9 +38,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
   const handleStartMission = useCallback(() => {
     if (createdMission) {
       setShowMissionDetails(false);
-      setCreatedMission(null);
+      setShowMissionView(true);
     }
   }, [createdMission]);
+
+  const handleCloseMissionView = useCallback(() => {
+    setShowMissionView(false);
+    setCreatedMission(null);
+  }, []);
 
   const handleCloseChat = useCallback(() => {
     setShowChat(false);
@@ -129,6 +136,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
       setMissionsError(error instanceof Error ? error.message : 'Failed to fetch mission details');
     }
   }, [apiClient]);
+
+  // Show Mission View Page if mission is started
+  if (showMissionView && createdMission) {
+    return (
+      <MissionViewPage
+        mission={createdMission}
+        onClose={handleCloseMissionView}
+        onLogout={onLogout}
+      />
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
