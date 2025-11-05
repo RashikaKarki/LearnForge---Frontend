@@ -42,3 +42,18 @@ export interface AuthState {
   token: string | null;
   loading: boolean;
 }
+
+export interface UserEnrolledMission {
+  mission_id: string;
+  mission_title: string;
+  mission_short_description: string;
+  mission_skills: string[];
+  progress: number;
+  byte_size_checkpoints: string[];
+  completed_checkpoints: string[];
+  session_id: string | null;
+  enrolled_at: string;
+  last_accessed_at: string;
+  completed: boolean;
+  updated_at: string;
+}

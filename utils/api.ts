@@ -1,4 +1,4 @@
-import { UserProfile, SessionResponse, Mission } from '../types';
+import { UserProfile, SessionResponse, Mission, UserEnrolledMission } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { sanitizeInput } from './validation';
 import { API_BASE_URL } from '../config';
@@ -181,6 +181,11 @@ export class ApiClient {
   // Get mission by ID
   async getMission(missionId: string): Promise<ApiResponse<Mission>> {
     return this.get<Mission>(`/missions/${missionId}`);
+  }
+
+  // Get enrolled missions for current user
+  async getUserEnrolledMissions(limit: number = 100): Promise<ApiResponse<UserEnrolledMission[]>> {
+    return this.get<UserEnrolledMission[]>(`/user/enrolled-missions?limit=${limit}`);
   }
 }
 
