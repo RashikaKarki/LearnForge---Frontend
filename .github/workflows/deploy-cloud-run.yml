@@ -1,0 +1,85 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual deployment
+
+jobs:
+  deploy:
+    name: Deploy to Google Cloud Run
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.PROJECT_REGION }}-docker.pkg.dev
+
+      - name: Fetch secrets from Secret Manager
+        run: |
+          echo "Fetching secrets from Secret Manager..."
+          echo "VITE_API_BASE_URL=$(gcloud secrets versions access latest --secret=VITE_API_BASE_URL --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+          echo "VITE_WEBSOCKET_HOST=$(gcloud secrets versions access latest --secret=VITE_WEBSOCKET_HOST --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+          echo "VITE_WEBSOCKET_PROTOCOL=$(gcloud secrets versions access latest --secret=VITE_WEBSOCKET_PROTOCOL --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+          echo "VITE_WEBSOCKET_API_VERSION=$(gcloud secrets versions access latest --secret=VITE_WEBSOCKET_API_VERSION --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+          echo "VITE_FIREBASE_API_KEY=$(gcloud secrets versions access latest --secret=VITE_FIREBASE_API_KEY --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+          echo "VITE_FIREBASE_AUTH_DOMAIN=$(gcloud secrets versions access latest --secret=VITE_FIREBASE_AUTH_DOMAIN --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+          echo "VITE_FIREBASE_PROJECT_ID=$(gcloud secrets versions access latest --secret=VITE_FIREBASE_PROJECT_ID --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=$(gcloud secrets versions access latest --secret=VITE_FIREBASE_MESSAGING_SENDER_ID --project=${{ secrets.PROJECT_ID }})" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE_URL="$VITE_API_BASE_URL" \
+            --build-arg VITE_WEBSOCKET_HOST="$VITE_WEBSOCKET_HOST" \
+            --build-arg VITE_WEBSOCKET_PROTOCOL="$VITE_WEBSOCKET_PROTOCOL" \
+            --build-arg VITE_WEBSOCKET_API_VERSION="$VITE_WEBSOCKET_API_VERSION" \
+            --build-arg VITE_FIREBASE_API_KEY="$VITE_FIREBASE_API_KEY" \
+            --build-arg VITE_FIREBASE_AUTH_DOMAIN="$VITE_FIREBASE_AUTH_DOMAIN" \
+            --build-arg VITE_FIREBASE_PROJECT_ID="$VITE_FIREBASE_PROJECT_ID" \
+            --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID="$VITE_FIREBASE_MESSAGING_SENDER_ID" \
+            -t ${{ secrets.PROJECT_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/${{ secrets.CLOUD_RUN_SERVICE }}:${{ github.sha }} .
+          docker tag ${{ secrets.PROJECT_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/${{ secrets.CLOUD_RUN_SERVICE }}:${{ github.sha }} \
+                     ${{ secrets.PROJECT_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/${{ secrets.CLOUD_RUN_SERVICE }}:latest
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ secrets.PROJECT_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/${{ secrets.CLOUD_RUN_SERVICE }}:${{ github.sha }}
+          docker push ${{ secrets.PROJECT_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/${{ secrets.CLOUD_RUN_SERVICE }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE }} \
+            --image ${{ secrets.PROJECT_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY_REPO }}/${{ secrets.CLOUD_RUN_SERVICE }}:${{ github.sha }} \
+            --platform managed \
+            --region ${{ secrets.PROJECT_REGION }} \
+            --project ${{ secrets.PROJECT_ID }} \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 10 \
+            --memory 512Mi \
+            --cpu 1 \
+            --timeout 300 \
+            --port 8080 \
+            --set-env-vars "NODE_ENV=production"
+
+      - name: Show deployment URL
+        run: |
+          echo "🚀 Deployment successful!"
+          gcloud run services describe ${{ secrets.CLOUD_RUN_SERVICE }} \
+            --platform managed \
+            --region ${{ secrets.PROJECT_REGION }} \
+            --project ${{ secrets.PROJECT_ID }} \
+            --format 'value(status.url)'
