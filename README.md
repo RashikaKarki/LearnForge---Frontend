@@ -43,3 +43,13 @@ Follow these steps to get the application running on your local machine.
 ## Design Guidelines
 
 The visual and UX guidelines for this project are documented in the `design_guideline.md` file.
+
+## Credits & Attributions
+
+### Icons
+- **Heroicons** - Icons used throughout the application (Rocket, Book, Gear, Plus, Logout, and Building icons) are from [Heroicons](https://heroicons.com/) by Tailwind CSS, licensed under the [MIT License](https://github.com/tailwindlabs/heroicons/blob/master/LICENSE).
+- **Google Icon** - Google logo used for authentication follows [Google's Brand Guidelines](https://about.google/brand-resource-center/).
+
+### Fonts
+- **Inter** - Primary font family from [Google Fonts](https://fonts.google.com/specimen/Inter)
+- **Roboto Mono** - Secondary font for code snippets from [Google Fonts](https://fonts.google.com/specimen/Roboto+Mono)
