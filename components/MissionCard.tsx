@@ -56,7 +56,7 @@ const MissionCard: React.FC<MissionCardProps> = ({ mission, onClick }) => {
         <div className="px-6 pb-6 pt-2 border-t border-soft-gray/50">
           <div className="flex justify-between items-center mb-2.5">
             <span className="text-sm font-normal text-gray-600">Progress</span>
-            <span className="text-base font-semibold text-sky-blue">{mission.progress}%</span>
+            <span className="text-base font-semibold text-sky-blue">{Math.round(mission.progress || 0)}%</span>
           </div>
           <div className="w-full bg-soft-gray rounded-full h-2 overflow-hidden">
             <div 

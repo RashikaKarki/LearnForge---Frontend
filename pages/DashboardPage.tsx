@@ -84,23 +84,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onLogout }) => {
         const response = await apiClient.getUserEnrolledMissions();
         if (response.data) {
           // Transform UserEnrolledMission to Mission for display
-          const transformedMissions = response.data.map((enrolled: UserEnrolledMission): Mission => ({
-            id: enrolled.mission_id,
-            title: enrolled.mission_title,
-            short_description: enrolled.mission_short_description,
-            description: enrolled.mission_short_description, // Use short_description for card display
-            level: '', // Will be filled when fetching full mission details
-            topics_to_cover: [], // Will be filled when fetching full mission details
-            learning_goal: '', // Will be filled when fetching full mission details
-            byte_size_checkpoints: enrolled.byte_size_checkpoints,
-            skills: enrolled.mission_skills,
-            creator_id: '', // Will be filled when fetching full mission details
-            is_public: true, // Will be filled when fetching full mission details
-            created_at: enrolled.enrolled_at,
-            updated_at: enrolled.updated_at,
-            progress: enrolled.progress,
-            tags: enrolled.mission_skills, // Use skills as tags for display
-          }));
+          const transformedMissions = response.data.map((enrolled: UserEnrolledMission): Mission => {
+            const mission: Mission = {
+              id: enrolled.mission_id,
+              title: enrolled.mission_title,
+              short_description: enrolled.mission_short_description,
+              description: enrolled.mission_short_description, // Use short_description for card display
+              level: '', // Will be filled when fetching full mission details
+              topics_to_cover: [], // Will be filled when fetching full mission details
+              learning_goal: '', // Will be filled when fetching full mission details
+              byte_size_checkpoints: enrolled.byte_size_checkpoints,
+              skills: enrolled.mission_skills,
+              creator_id: '', // Will be filled when fetching full mission details
+              is_public: true, // Will be filled when fetching full mission details
+              created_at: enrolled.enrolled_at,
+              updated_at: enrolled.updated_at,
+              tags: enrolled.mission_skills, // Use skills as tags for display
+            };
+            // Round progress to whole number if it exists
+            if (enrolled.progress !== undefined) {
+              mission.progress = Math.round(enrolled.progress);
+            }
+            return mission;
+          });
           setEnrolledMissions(transformedMissions);
         } else if (response.error) {
           setMissionsError(response.error);

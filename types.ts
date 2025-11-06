@@ -35,6 +35,7 @@ export interface UserProfile {
   email: string;
   name: string;
   picture: string;
+  learning_style?: string[];
 }
 
 export interface AuthState {

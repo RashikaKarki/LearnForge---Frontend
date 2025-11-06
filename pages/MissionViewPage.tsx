@@ -122,7 +122,7 @@ export const MissionViewPage: React.FC<MissionViewPageProps> = ({
 
   const getProgressPercentage = () => {
     if (mission.byte_size_checkpoints.length === 0) return 0;
-    return (completedCheckpoints.length / mission.byte_size_checkpoints.length) * 100;
+    return Math.round((completedCheckpoints.length / mission.byte_size_checkpoints.length) * 100);
   };
 
   return (

@@ -167,6 +167,11 @@ export class ApiClient {
     return this.get<UserProfile>('/user/profile');
   }
 
+  // Update user profile (name and/or learning_style)
+  async updateUser(data: { name?: string; learning_style?: string[] }): Promise<ApiResponse<UserProfile>> {
+    return this.put<UserProfile>('/user/update', data);
+  }
+
   // Create a new session for WebSocket connection
   // This endpoint uses the session cookie from login, not Bearer token
   async createWebSocketSession(_firebaseToken: string): Promise<ApiResponse<SessionResponse>> {

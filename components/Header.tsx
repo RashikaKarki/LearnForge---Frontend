@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { LogoIcon } from './icons/LogoIcon';
+import { GearIcon } from './icons/GearIcon';
+import { SettingsModal } from './SettingsModal';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
@@ -9,6 +11,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onLogout }) => {
   const { userProfile, loading } = useAuth();
+  const [showSettings, setShowSettings] = useState(false);
 
   // Get user initials for avatar
   const getUserInitials = (name: string | null, email: string | null) => {
@@ -69,6 +72,13 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
               </div>
             </div>
             <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 rounded-full text-gray-500 hover:bg-soft-gray hover:text-deep-navy focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-blue transition-colors"
+              aria-label="Settings"
+            >
+              <GearIcon className="h-6 w-6" />
+            </button>
+            <button
               onClick={onLogout}
               className="p-2 rounded-full text-gray-500 hover:bg-soft-gray hover:text-deep-navy focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-blue transition-colors"
               aria-label="Logout"
@@ -78,6 +88,7 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
           </div>
         </div>
       </div>
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </header>
   );
 };
