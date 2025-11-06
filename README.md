@@ -7,7 +7,6 @@ Welcome to Learnforge! This is a web application for creating and undertaking pe
 - **Frontend:** React, TypeScript
 - **Styling:** Tailwind CSS
  **Containerization:** Docker (served by a small Node static server)
-- **AI Integration (Planned):** Google Gemini API
 
 ## Getting Started
 
