@@ -56,15 +56,20 @@ export const CheckpointItem: React.FC<CheckpointItemProps> = ({
       </div>
 
       {/* Path Connection Point - Only visible on desktop */}
-      <div className={`hidden lg:block absolute left-1/2 w-10 h-10 bg-white border-[3px] rounded-full transform -translate-x-1/2 z-20 flex items-center justify-center shadow-md ${
+      <div className={`hidden lg:block absolute left-1/2 w-12 h-12 bg-white border-[3px] rounded-full transform -translate-x-1/2 -translate-y-1/2 top-1/2 z-30 flex items-center justify-center shadow-lg ${
         status === 'completed' ? 'border-sky-blue ring-2 ring-sky-blue/20' : 'border-soft-gray'
       }`}>
-        {status === 'completed' && (
-          <div className="w-4 h-4 bg-sky-blue rounded-full shadow-md"></div>
-        )}
-        {status === 'available' && (
-          <div className="w-2.5 h-2.5 bg-sky-blue/30 rounded-full"></div>
-        )}
+        <div className="flex items-center justify-center w-full h-full">
+          {status === 'completed' && (
+            <div className="w-5 h-5 bg-sky-blue rounded-full shadow-md"></div>
+          )}
+          {status === 'available' && (
+            <div className="w-3 h-3 bg-sky-blue/30 rounded-full"></div>
+          )}
+          {status === 'locked' && (
+            <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+          )}
+        </div>
       </div>
 
       {/* Checkpoint Content Card */}
