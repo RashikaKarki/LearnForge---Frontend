@@ -20,8 +20,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1 px-5 py-3.5 border-2 border-soft-gray rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-blue focus:border-sky-blue text-base font-normal text-deep-navy transition-all duration-200 focus:shadow-lg bg-white"
+          placeholder={disabled ? "Agent is thinking..." : "Type your message..."}
+          disabled={disabled}
+          className="flex-1 px-5 py-3.5 border-2 border-soft-gray rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-blue focus:border-sky-blue text-base font-normal text-deep-navy transition-all duration-200 focus:shadow-lg bg-white disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50"
         />
         <button
           type="submit"

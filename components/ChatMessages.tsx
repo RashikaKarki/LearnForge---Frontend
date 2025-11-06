@@ -1,5 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { RocketIcon } from './icons/RocketIcon';
+import { TypingIndicator } from './TypingIndicator';
+import { MarkdownMessage } from './MarkdownMessage';
 
 export interface ChatMessage {
   from: 'user' | 'agent';
@@ -9,16 +11,17 @@ export interface ChatMessage {
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
+  isTyping: boolean;
 }
 
-export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
+export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isTyping }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto px-6 lg:px-8 py-6 space-y-4 bg-gradient-to-b from-white via-gray-50/20 to-white pb-24">
@@ -31,27 +34,35 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
           <p className="text-xs sm:text-sm font-normal text-gray-600 leading-relaxed max-w-sm mx-auto animate-slide-up-delay">I'm here to help you through your learning journey. Ask me anything about your mission!</p>
         </div>
       ) : (
-        messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.from === 'user' ? 'justify-end' : 'justify-start'} animate-message-in`}
-          >
+        <>
+          {messages.map((message, index) => (
             <div
-              className={`max-w-[85%] sm:max-w-[80%] rounded-2xl p-3 sm:p-4 shadow-lg transition-all duration-300 ${
-                message.from === 'user'
-                  ? 'bg-gradient-to-br from-sky-blue to-sky-blue/90 text-white'
-                  : 'bg-white border-2 border-soft-gray text-deep-navy'
-              }`}
+              key={index}
+              className={`flex ${message.from === 'user' ? 'justify-end' : 'justify-start'} animate-message-in`}
             >
-              <p className="text-xs sm:text-sm font-normal leading-relaxed">{message.text}</p>
-              <p className={`text-[10px] sm:text-xs mt-2 sm:mt-2.5 ${
-                message.from === 'user' ? 'text-white/70' : 'text-gray-500'
-              }`}>
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
+              <div
+                className={`max-w-[85%] sm:max-w-[80%] rounded-2xl p-3 sm:p-4 shadow-lg transition-all duration-300 ${
+                  message.from === 'user'
+                    ? 'bg-gradient-to-br from-sky-blue to-sky-blue/90 text-white'
+                    : 'bg-white border-2 border-soft-gray text-deep-navy'
+                }`}
+              >
+                <div className="text-xs sm:text-sm font-normal leading-relaxed">
+                  <MarkdownMessage 
+                    content={message.text}
+                    className={message.from === 'user' ? 'text-white' : 'text-deep-navy'}
+                  />
+                </div>
+                <p className={`text-[10px] sm:text-xs mt-2 sm:mt-2.5 ${
+                  message.from === 'user' ? 'text-white/70' : 'text-gray-500'
+                }`}>
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
             </div>
-          </div>
-        ))
+          ))}
+          <TypingIndicator isVisible={isTyping} />
+        </>
       )}
       <div ref={messagesEndRef} />
     </div>

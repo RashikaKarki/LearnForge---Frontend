@@ -23,3 +23,15 @@ export const getWebSocketUrl = (endpoint: string, sessionId: string): string => 
   });
   return `${baseUrl}?${params.toString()}`;
 };
+
+// Mission Ally WebSocket URL constructor
+export const getMissionAllyWebSocketUrl = (missionId: string, token: string): string => {
+  const baseUrl = `${WEBSOCKET_PROTOCOL}://${WEBSOCKET_HOST}${WEBSOCKET_API_VERSION}/mission-ally/ws`;
+  const params = new URLSearchParams({
+    mission_id: missionId
+  });
+  if (token) {
+    params.append('token', token);
+  }
+  return `${baseUrl}?${params.toString()}`;
+};
