@@ -9,6 +9,7 @@ interface JourneyMapProps {
   completedCheckpoints: string[];
   progressPercentage: number;
   getCheckpointStatus: (checkpoint: string, index: number) => CheckpointStatus;
+  width?: number; // Percentage width
 }
 
 export const JourneyMap: React.FC<JourneyMapProps> = ({
@@ -16,11 +17,23 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
   completedCheckpoints,
   progressPercentage,
   getCheckpointStatus,
+  width = 40,
 }) => {
   const isCompleted = completedCheckpoints.length === checkpoints.length;
 
   return (
-    <div className="hidden lg:flex flex-[2] bg-gradient-to-br from-white via-gray-50/30 to-white border-r border-soft-gray overflow-y-auto min-h-0">
+    <div 
+      data-journey-map
+      className="journey-map-container hidden lg:flex bg-gradient-to-br from-white via-gray-50/30 to-white border-r border-soft-gray overflow-y-auto min-h-0"
+      style={{ flexShrink: 0 }}
+    >
+      {/* Apply width on large screens */}
+      <style>{`
+        .journey-map-container {
+          width: ${width}%;
+          flex-shrink: 0;
+        }
+      `}</style>
       <div className="w-full px-6 lg:px-8 py-8">
         {/* Header - Hidden on tablet, shown on desktop */}
         <div className="mb-8 hidden lg:block">
@@ -71,21 +84,21 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
           </div>
 
           {/* End Point - Hidden on tablet, shown on desktop */}
-          <div className="hidden lg:block absolute left-1/2 bottom-0 transform -translate-x-1/2 z-50">
+          <div className="hidden lg:block absolute left-1/2 bottom-0 transform -translate-x-1/2 z-50 flex flex-col items-center">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-xl transition-all duration-500 ${
               isCompleted
                 ? 'bg-gradient-to-br from-sky-blue to-sky-blue/80'
                 : 'bg-soft-gray'
             }`}>
               {isCompleted ? (
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 13l4 4L19 7" />
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                  <polyline points="20 6 9 17 4 12" />
                 </svg>
               ) : (
                 <RocketIcon className="h-6 w-6 text-white" strokeWidth={2} />
               )}
             </div>
-            <p className={`text-sm font-semibold text-center mt-3 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full inline-block ${
+            <p className={`text-sm font-semibold text-center mt-3 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full ${
               isCompleted ? 'text-sky-blue' : 'text-deep-navy'
             }`}>
               Complete

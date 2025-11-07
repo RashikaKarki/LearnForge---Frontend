@@ -36,7 +36,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             showSuccess('Successfully signed in!');
             
             // Give the browser time to store the session cookie
-            await new Promise(resolve => setTimeout(resolve, 4000));
+            // Mobile browsers need more time, especially for cross-domain cookies
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Verify session was created by checking session status
+            try {
+              const sessionStatus = await apiClient.checkSessionStatus();
+              if (!sessionStatus.data) {
+                // Session not ready yet, wait a bit more
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+            } catch (e) {
+              // Session check failed, but continue anyway
+              console.warn('Session status check failed, continuing anyway:', e);
+            }
             
             onLogin();
           } else {

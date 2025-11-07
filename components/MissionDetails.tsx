@@ -144,7 +144,7 @@ export const MissionDetails: React.FC<MissionDetailsProps> = ({
               className="flex-1 flex items-center justify-center px-6 py-4 bg-coral text-white font-semibold rounded-lg shadow-md hover:bg-coral/90 transition-colors duration-300 transform hover:scale-105 text-base"
             >
               <RocketIcon className="h-5 w-5 mr-2" strokeWidth={2} />
-              Start Mission
+              Enter Mission
             </button>
             <button
               onClick={onClose}

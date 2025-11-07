@@ -28,7 +28,8 @@ export class ApiClient {
 
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retryCount: number = 0
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
@@ -37,17 +38,29 @@ export class ApiClient {
       ...options.headers,
     };
 
+    // For mobile browsers, ensure we're using the correct mode
+    const fetchOptions: RequestInit = {
+      ...options,
+      headers,
+      credentials: 'include',
+      mode: 'cors',
+      cache: 'no-cache',
+    };
+
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-        credentials: 'include',
-      });
+      const response = await fetch(url, fetchOptions);
 
       if (!response.ok) {
         let errorMessage: string;
         
         if (response.status === 401) {
+          // Retry 401 errors on mobile (cookie might not be set yet)
+          if (retryCount < 2 && endpoint !== '/auth/create-session') {
+            // Wait a bit longer for mobile browsers to process cookies
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+            return this.makeRequest<T>(endpoint, options, retryCount + 1);
+          }
+          
           errorMessage = 'Session expired. Please sign in again.';
           if (this.onSessionExpired) {
             this.onSessionExpired();
@@ -78,6 +91,12 @@ export class ApiClient {
               errorData.message?.includes('session') ||
               errorData.message?.includes('expired') ||
               errorData.message?.includes('invalid')) {
+            
+            // Retry once more for cookie-related errors on mobile
+            if (retryCount < 2 && endpoint !== '/auth/create-session') {
+              await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
+              return this.makeRequest<T>(endpoint, options, retryCount + 1);
+            }
             
             if (this.onSessionExpired) {
               this.onSessionExpired();

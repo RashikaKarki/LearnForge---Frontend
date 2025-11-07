@@ -73,7 +73,7 @@ const MissionCard: React.FC<MissionCardProps> = ({ mission, onClick }) => {
               onClick={handleStartMission}
               className="w-full text-center font-semibold text-sky-blue hover:text-deep-navy transition-colors duration-200 text-base py-1"
             >
-              Start Mission
+              Enter Mission
             </button>
          </div>
       )}

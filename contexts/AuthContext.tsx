@@ -205,9 +205,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (user && apiClient && !userProfile) {
       if (isInitialLoad) {
-        const timer = setTimeout(async () => {
-          fetchUserProfile();
-        }, 1000);
+        // On mobile, cookies might take longer to be available
+        // Use a longer delay and retry logic
+        const fetchWithRetry = async (attempt: number = 0) => {
+          if (attempt < 3) {
+            try {
+              await fetchUserProfile();
+              // If successful, userProfile will be set and this effect won't run again
+            } catch (error) {
+              // If it fails, retry after a delay
+              if (attempt < 2) {
+                setTimeout(() => fetchWithRetry(attempt + 1), 2000 * (attempt + 1));
+              }
+            }
+          }
+        };
+        
+        const timer = setTimeout(() => {
+          fetchWithRetry();
+        }, 1500);
         
         return () => clearTimeout(timer);
       } else {

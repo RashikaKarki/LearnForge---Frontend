@@ -5,6 +5,7 @@ import { MissionHeader } from '../components/MissionHeader';
 import { JourneyMap } from '../components/JourneyMap';
 import { ChatSection } from '../components/ChatSection';
 import { ChatMessage } from '../components/ChatMessages';
+import { ResizableDivider } from '../components/ResizableDivider';
 import { useMissionAllyWebSocket, WebSocketMessage } from '../hooks/useMissionAllyWebSocket';
 import { useApiClient } from '../utils/api';
 
@@ -22,6 +23,9 @@ export const MissionViewPage: React.FC<MissionViewPageProps> = ({
   const [completedCheckpoints, setCompletedCheckpoints] = useState<string[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [journeyWidth, setJourneyWidth] = useState(40); // Percentage (constrained between 30-50%)
+  const [chatWidth, setChatWidth] = useState(60); // Percentage (constrained between 50-70%)
+  const containerRef = useRef<HTMLDivElement>(null);
   const apiClient = useApiClient();
   const hasLoadedEnrolledDataRef = useRef(false);
 
@@ -140,12 +144,21 @@ export const MissionViewPage: React.FC<MissionViewPageProps> = ({
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+        <div ref={containerRef} className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
           <JourneyMap
             checkpoints={mission.byte_size_checkpoints}
             completedCheckpoints={completedCheckpoints}
             progressPercentage={getProgressPercentage()}
             getCheckpointStatus={getCheckpointStatus}
+            width={journeyWidth}
+          />
+
+          <ResizableDivider
+            containerRef={containerRef}
+            onResize={(journey, chat) => {
+              setJourneyWidth(journey);
+              setChatWidth(chat);
+            }}
           />
 
           <ChatSection
@@ -154,6 +167,7 @@ export const MissionViewPage: React.FC<MissionViewPageProps> = ({
             onInputChange={setInputMessage}
             onSendMessage={handleSendMessage}
             isTyping={isTyping}
+            width={chatWidth}
           />
         </div>
       </div>
