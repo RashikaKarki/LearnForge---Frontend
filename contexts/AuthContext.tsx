@@ -10,7 +10,6 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  sessionExpired: boolean;
   error: {
     type: '500' | '400' | null;
     message?: string;
@@ -18,8 +17,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
   clearError: () => void;
-  checkSessionStatus: () => Promise<boolean>;
-  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,7 +30,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [apiClient, setApiClient] = useState<ApiClient | null>(null);
-  const [sessionExpired, setSessionExpired] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<{
     type: '500' | '400' | null;
@@ -42,35 +38,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   const { showWarning } = useFlashError();
 
-  // Check session status with the server
-  const checkSessionStatus = useCallback(async (): Promise<boolean> => {
-    if (!apiClient) return false;
-    
-    try {
-      const response = await apiClient.checkSessionStatus();
-      return !!response.data;
-    } catch (error) {
-      return false;
-    }
-  }, [apiClient]);
-
-  // Refresh session with proper error handling
-  const refreshSession = useCallback(async (): Promise<boolean> => {
-    if (!apiClient) return false;
-    
-    try {
-      const response = await apiClient.refreshSession();
-      
-      if (response.data) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      return false;
-    }
-  }, [apiClient]);
-
   // Clear error state
   const clearError = (): void => {
     setError({ type: null });
@@ -78,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Fetch user profile from API
   const fetchUserProfile = useCallback(async (): Promise<void> => {
-    if (apiClient) {
+    if (apiClient && user) {
       try {
         clearError();
         const response = await apiClient.getUserProfile();
@@ -87,16 +54,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUserProfile(response.data);
           setIsInitialLoad(false);
         } else {
-          
-          if (response.error?.includes('No session cookie found') ||
-              response.error?.includes('Session has expired') ||
-              response.error?.includes('Session has been revoked') ||
-              response.error?.includes('Invalid session cookie') ||
-              response.error?.includes('Invalid or expired session') ||
-              response.error?.includes('session') ||
-              response.error?.includes('expired') ||
-              response.error?.includes('Authentication failed')) {
-            
+          if (response.error?.includes('Authentication failed') || 
+              response.error?.includes('401')) {
             if (isInitialLoad) {
               await signOut();
               return;
@@ -112,15 +71,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       } catch (error: any) {
-        if (error.message?.includes('No session cookie found') ||
-            error.message?.includes('Session has expired') ||
-            error.message?.includes('Session has been revoked') ||
-            error.message?.includes('Invalid session cookie') ||
-            error.message?.includes('Invalid or expired session') ||
-            error.message?.includes('session') ||
-            error.message?.includes('expired') ||
-            error.message?.includes('Authentication failed')) {
-          
+        if (error.message?.includes('Authentication failed') || 
+            error.message?.includes('401')) {
           if (isInitialLoad) {
             await signOut();
             return;
@@ -137,62 +89,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setError({ type: '500', message: 'An unexpected error occurred' });
         }
       }
-    } else {
-      // No API client available
     }
   }, [apiClient, user, isInitialLoad]);
 
   // Sign out function
   const signOut = useCallback(async (): Promise<void> => {
     try {
-      if (apiClient) {
-        try {
-          await apiClient.logout();
-        } catch (error) {
-          // Failed to clear session on server
-        }
-      }
-      
       await firebaseSignOut(auth);
-      
       setUser(null);
       setUserProfile(null);
-      setSessionExpired(false);
       setIsInitialLoad(true);
     } catch (error) {
-      // Error signing out
+      console.error('Error signing out:', error);
     }
-  }, [apiClient]);
+  }, []);
 
-  // Initialize API client (always available for session-based auth)
+  // Initialize API client with token getter
   useEffect(() => {
+    const getToken = async (): Promise<string | null> => {
+      if (!user) return null;
+      try {
+        return await user.getIdToken(true); // Force refresh to get fresh token
+      } catch (error) {
+        console.error('Failed to get ID token:', error);
+        return null;
+      }
+    };
+
     const handleSessionExpired = async () => {
       if (isInitialLoad) {
         await signOut();
       } else {
-        showWarning('Your session has expired. Please sign in again.');
+        showWarning('Your authentication has expired. Please sign in again.');
         setError({ type: null });
-        setSessionExpired(true);
         await signOut();
       }
     };
   
     const client = new ApiClient(
       API_BASE_URL,
+      user ? getToken : null,
       handleSessionExpired
     );
     setApiClient(client);
-  }, []);
+  }, [user, isInitialLoad, showWarning, signOut]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       
-      if (user) {
-        // User authenticated with Firebase
-      } else {
+      if (!user) {
         setUserProfile(null);
-        setSessionExpired(false);
       }
       
       setLoading(false);
@@ -201,65 +148,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // Check session status and fetch user profile when user is authenticated
+  // Fetch user profile when user is authenticated
   useEffect(() => {
     if (user && apiClient && !userProfile) {
-      if (isInitialLoad) {
-        // On mobile, cookies might take longer to be available
-        // Use a longer delay and retry logic
-        const fetchWithRetry = async (attempt: number = 0) => {
-          if (attempt < 3) {
-            try {
-              await fetchUserProfile();
-              // If successful, userProfile will be set and this effect won't run again
-            } catch (error) {
-              // If it fails, retry after a delay
-              if (attempt < 2) {
-                setTimeout(() => fetchWithRetry(attempt + 1), 2000 * (attempt + 1));
-              }
-            }
-          }
-        };
-        
-        const timer = setTimeout(() => {
-          fetchWithRetry();
-        }, 1500);
-        
-        return () => clearTimeout(timer);
-      } else {
-        fetchUserProfile();
-        return undefined;
-      }
-    } else {
-      return undefined;
+      fetchUserProfile();
     }
-  }, [user, apiClient, userProfile, fetchUserProfile, checkSessionStatus, signOut, isInitialLoad]);
-
-  useEffect(() => {
-    if (user && apiClient) {
-      const interval = setInterval(async () => {
-        const success = await refreshSession();
-        if (!success) {
-          showWarning('Session refresh failed. You may need to sign in again soon.');
-        }
-      }, 1.5 * 24 * 60 * 60 * 1000);
-
-      return () => clearInterval(interval);
-    }
-    return undefined;
-  }, [user, apiClient, refreshSession, showWarning]);
+  }, [user, apiClient, userProfile, fetchUserProfile]);
 
   const value: AuthContextType = {
     user,
     userProfile,
     loading,
-    sessionExpired,
     error,
     signOut,
     fetchUserProfile,
     clearError,
-    checkSessionStatus,
-    refreshSession,
   };
 
   return (

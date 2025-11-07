@@ -3,7 +3,6 @@ import { GoogleIcon } from '../components/icons/GoogleIcon';
 import { LogoIcon } from '../components/icons/LogoIcon';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, provider } from '../firebase';
-import { useApiClient } from '../utils/api';
 import { useFlashError } from '../contexts/FlashErrorContext';
 
 interface LoginPageProps {
@@ -13,7 +12,6 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const apiClient = useApiClient();
   const { showError, showSuccess, showWarning } = useFlashError();
 
   const handleLogin = async () => {
@@ -23,67 +21,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
       // Sign in with Google using Firebase
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Get the ID token for session creation
-      const idToken = await user.getIdToken();
-
-      if (apiClient) {
-        try {
-          const sessionResponse = await apiClient.createSession(idToken);
-          
-          if (sessionResponse.data) {
-            showSuccess('Successfully signed in!');
-            
-            // Give the browser time to store the session cookie
-            // Mobile browsers need more time, especially for cross-domain cookies
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Verify session was created by checking session status
-            try {
-              const sessionStatus = await apiClient.checkSessionStatus();
-              if (!sessionStatus.data) {
-                // Session not ready yet, wait a bit more
-                await new Promise(resolve => setTimeout(resolve, 2000));
-              }
-            } catch (e) {
-              // Session check failed, but continue anyway
-              console.warn('Session status check failed, continuing anyway:', e);
-            }
-            
-            onLogin();
-          } else {
-            if (sessionResponse.error?.includes('Recent sign-in required')) {
-              showError('Your session has expired. Please sign in again.', 'warning');
-            } else if (sessionResponse.error?.includes('Invalid ID token')) {
-              showError('Authentication failed. Please try signing in again.', 'error');
-            } else if (sessionResponse.error?.includes('500') || sessionResponse.error?.includes('Internal Server Error')) {
-              showError('Server error occurred. Please try again in a moment.', 'error');
-            } else {
-              showError('Failed to create session. Please try again.', 'error');
-            }
-            
-            setError('Failed to create session. Please try again.');
-          }
-        } catch (sessionError: any) {
-          if (sessionError.message?.includes('Recent sign-in required')) {
-            showError('Your session has expired. Please sign in again.', 'warning');
-          } else if (sessionError.message?.includes('Invalid ID token')) {
-            showError('Authentication failed. Please try signing in again.', 'error');
-          } else if (sessionError.message?.includes('500') || sessionError.message?.includes('Internal Server Error')) {
-            showError('Server error occurred. Please try again in a moment.', 'error');
-          } else if (sessionError.message?.includes('Network')) {
-            showError('Network error. Please check your connection and try again.', 'error');
-          } else {
-            showError('Failed to create session. Please try again.', 'error');
-          }
-          
-          setError('Failed to create session. Please try again.');
-        }
-      } else {
-        showError('System error. Please refresh the page and try again.', 'error');
-        setError('API client not available. Please try again.');
-      }
+      
+      showSuccess('Successfully signed in!');
+      onLogin();
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') {
         showWarning('Sign-in was cancelled. Please try again.');

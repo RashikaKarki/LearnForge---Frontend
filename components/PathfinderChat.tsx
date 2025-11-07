@@ -70,7 +70,7 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
       }
       
       const firebaseToken = await user.getIdToken();
-      const sessionResponse = await apiClient.createWebSocketSession(firebaseToken);
+      const sessionResponse = await apiClient.createWebSocketSession();
       
       if (sessionResponse.error || !sessionResponse.data) {
         throw new Error(sessionResponse.error || 'Failed to create session');
@@ -78,10 +78,7 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
 
       const { session_id } = sessionResponse.data;
       
-      // Set token cookie for WebSocket authentication  
-      document.cookie = `token=${firebaseToken}; path=/; secure; samesite=none`;
-      
-      // Pass token in URL as well for WebSocket authentication
+      // Pass token in URL for WebSocket authentication
       const wsUrl = getPolarisWebSocketUrl(session_id, firebaseToken);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -172,8 +169,6 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
         console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         setIsLoading(false);
-        // Clean up token cookie
-        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       };
 
     } catch (error) {
@@ -203,8 +198,6 @@ export const PolarisChat: React.FC<PolarisChatProps> = ({
         wsRef.current.close();
         wsRef.current = null;
       }
-      // Clean up token cookie on unmount
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

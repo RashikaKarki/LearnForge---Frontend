@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FlashErrorProvider } from './contexts/FlashErrorContext';
 
 function AppContent() {
-  const { user, loading, error, sessionExpired, signOut } = useAuth();
+  const { user, loading, error, signOut } = useAuth();
 
   const handleLogin = () => {
     // This will be called after successful Firebase authentication
@@ -17,35 +17,6 @@ function AppContent() {
   const handleLogout = async () => {
     await signOut();
   };
-
-  // Handle session expiration
-  if (sessionExpired) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-deep-navy">
-        <div className="max-w-md w-full text-center">
-          <div className="mb-8">
-            <div className="h-16 w-16 bg-coral rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-white text-2xl font-bold">!</span>
-            </div>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-4">Session Expired</h1>
-              <p className="text-gray-300 text-lg leading-relaxed">
-                Your session has expired. Please sign in again to continue.
-              </p>
-            </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full bg-coral text-white font-semibold py-3 px-6 rounded-lg hover:bg-coral/90 transition-colors duration-200 transform hover:scale-105"
-            >
-              Sign In Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Handle error states
   if (error.type === '500') {
