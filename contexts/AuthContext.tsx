@@ -31,6 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [apiClient, setApiClient] = useState<ApiClient | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<{
     type: '500' | '400' | null;
     message?: string;
@@ -51,9 +52,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const response = await apiClient.getUserProfile();
         
         if (response.data) {
+          console.log('[Auth] Profile loaded successfully');
           setUserProfile(response.data);
           setIsInitialLoad(false);
         } else {
+          console.error('[Auth] Failed to load profile:', response.error);
           if (response.error?.includes('Authentication failed') || 
               response.error?.includes('401')) {
             if (isInitialLoad) {
@@ -71,6 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       } catch (error: any) {
+        console.error('[Auth] Error fetching profile:', error);
         if (error.message?.includes('Authentication failed') || 
             error.message?.includes('401')) {
           if (isInitialLoad) {
@@ -109,10 +113,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const getToken = async (): Promise<string | null> => {
       if (!user) return null;
       try {
-        return await user.getIdToken(true); // Force refresh to get fresh token
+        // Use cached token to avoid forcing refresh on every request
+        // This prevents issues on page refresh when token is being restored
+        const token = await user.getIdToken(false);
+        return token;
       } catch (error) {
         console.error('Failed to get ID token:', error);
-        return null;
+        // If getting cached token fails, try to force refresh once
+        try {
+          return await user.getIdToken(true);
+        } catch (retryError) {
+          console.error('Failed to force refresh token:', retryError);
+          return null;
+        }
       }
     };
 
@@ -136,24 +149,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('[Auth] onAuthStateChanged fired, user:', user ? 'present' : 'null');
       setUser(user);
       
       if (!user) {
         setUserProfile(null);
+        setAuthReady(false);
+        setLoading(false);
+      } else {
+        console.log('[Auth] User detected, waiting for auth to be fully ready...');
+        
+        setTimeout(async () => {
+          try {
+            const token = await user.getIdToken(false);
+            if (token) {
+              console.log('[Auth] Token verified, marking auth as ready');
+              setAuthReady(true);
+            } else {
+              console.warn('[Auth] Token not available yet, will retry...');
+              setTimeout(async () => {
+                const retryToken = await user.getIdToken(false);
+                if (retryToken) {
+                  console.log('[Auth] Token verified on retry, marking auth as ready');
+                  setAuthReady(true);
+                } else {
+                  console.error('[Auth] Token still not available after retry');
+                  setAuthReady(true);
+                }
+                setLoading(false);
+              }, 1000);
+              return;
+            }
+          } catch (error) {
+            console.error('[Auth] Error verifying token:', error);
+            setAuthReady(true);
+          }
+          setLoading(false);
+        }, 1000);
       }
-      
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Fetch user profile when user is authenticated
+  // Fetch user profile when user is authenticated AND auth is ready
   useEffect(() => {
-    if (user && apiClient && !userProfile) {
-      fetchUserProfile();
-    }
-  }, [user, apiClient, userProfile, fetchUserProfile]);
+    const fetchProfileWithRetry = async () => {
+      if (!user || !apiClient || userProfile || !authReady) {
+        console.log('[Auth] Skipping profile fetch:', {
+          user: !!user,
+          apiClient: !!apiClient,
+          userProfile: !!userProfile,
+          authReady
+        });
+        return;
+      }
+      
+      console.log('[Auth] Conditions met, fetching profile...');
+      
+      // Auth is ready and token has been verified, just fetch the profile
+      await fetchUserProfile();
+    };
+    
+    fetchProfileWithRetry();
+  }, [user, apiClient, userProfile, authReady, fetchUserProfile]);
 
   const value: AuthContextType = {
     user,

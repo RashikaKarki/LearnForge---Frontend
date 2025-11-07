@@ -41,8 +41,11 @@ export class ApiClient {
     if (this.getToken) {
       try {
         token = await this.getToken();
+        if (!token) {
+          console.error('[API] No token received from getToken');
+        }
       } catch (error) {
-        console.error('Failed to get Firebase ID token:', error);
+        console.error('[API] Failed to get Firebase ID token:', error);
         if (this.onSessionExpired) {
           this.onSessionExpired();
         }
@@ -104,6 +107,7 @@ export class ApiClient {
         
         try {
           const errorData = await response.json();
+          console.log(`[API] Error response data:`, errorData);
           
           if (errorData.message || errorData.error) {
             const sanitizedError = sanitizeInput(errorData.message || errorData.error);
@@ -194,7 +198,8 @@ export const useApiClient = () => {
   const getToken = async (): Promise<string | null> => {
     if (!user) return null;
     try {
-      return await user.getIdToken(true); // Force refresh to get fresh token
+      // Use cached token to avoid unnecessary refreshes
+      return await user.getIdToken(false);
     } catch (error) {
       console.error('Failed to get ID token:', error);
       return null;
