@@ -16,7 +16,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ isVisible }) =
             <div className="w-2 h-2 bg-sky-blue rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
             <div className="w-2 h-2 bg-sky-blue rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
-          <span className="text-xs sm:text-sm text-gray-500 font-normal">Agent is thinking...</span>
+          <span className="text-xs sm:text-sm text-gray-500 font-normal">Lumina is thinking...</span>
         </div>
       </div>
     </div>
