@@ -1,7 +1,7 @@
 import React from 'react';
-import { LogoIcon } from '../components/icons/LogoIcon';
 import { RocketIcon } from '../components/icons/RocketIcon';
 import { useAuth } from '../contexts/AuthContext';
+import logoImage from '../components/icons/logo/logo.png';
 
 const Error500Page: React.FC = () => {
   const { clearError, fetchUserProfile } = useAuth();
@@ -23,7 +23,7 @@ const Error500Page: React.FC = () => {
     <div className="min-h-screen bg-deep-navy flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
-          <LogoIcon className="h-16 w-16 text-coral mx-auto mb-4" />
+          <img src={logoImage} alt="Learnforge Logo" className="h-30 w-30 mx-auto mb-4" />
           <RocketIcon className="h-12 w-12 text-coral mx-auto opacity-50" />
         </div>
         

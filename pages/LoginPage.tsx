@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { GoogleIcon } from '../components/icons/GoogleIcon';
-import { LogoIcon } from '../components/icons/LogoIcon';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, provider } from '../firebase';
 import { useFlashError } from '../contexts/FlashErrorContext';
+import logoImage from '../components/icons/logo/logo.png';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -45,13 +45,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-deep-navy">
-      <div className="w-full max-w-md p-8 space-y-8 text-center bg-white rounded-2xl shadow-2xl mx-4">
+      <div className="w-full max-w-md p-8 space-y-4 text-center bg-white rounded-2xl shadow-2xl mx-4">
         <div className="flex justify-center">
-          <LogoIcon className="h-12 w-12 text-deep-navy" />
+          <img src={logoImage} alt="Learnforge Logo" className="h-25 w-25" />
         </div>
-        <div className="space-y-2">
+        <div>
             <h1 className="text-3xl font-bold text-deep-navy">Welcome to Learnforge</h1>
-            <p className="text-gray-600">Forge your knowledge, one mission at a time.</p>
+            <p className="text-gray-600">Forge Your Path. Learn Your Way.</p>
         </div>
         <div className="pt-6">
           {error && (

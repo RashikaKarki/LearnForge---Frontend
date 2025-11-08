@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { LogoutIcon } from './icons/LogoutIcon';
-import { LogoIcon } from './icons/LogoIcon';
 import { GearIcon } from './icons/GearIcon';
 import { SettingsModal } from './SettingsModal';
 import { useAuth } from '../contexts/AuthContext';
+import logoImage from './icons/logo/logo.png';
 
 interface HeaderProps {
   onLogout: () => void;
@@ -34,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center space-x-3">
-            <LogoIcon className="h-9 w-9 text-deep-navy" />
+            <img src={logoImage} alt="Learnforge Logo" className="h-20 w-20" />
             <span className="text-2xl font-bold text-deep-navy">Learnforge</span>
           </div>
           <div className="flex items-center space-x-4">
