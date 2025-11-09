@@ -68,7 +68,7 @@ jobs:
             --project ${{ secrets.PROJECT_ID }} \
             --allow-unauthenticated \
             --min-instances 0 \
-            --max-instances 10 \
+            --max-instances 3 \
             --memory 512Mi \
             --cpu 1 \
             --timeout 300 \
